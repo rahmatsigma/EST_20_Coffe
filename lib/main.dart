@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:est20coffee/providers/cart_provider.dart';
 import 'package:est20coffee/theme/app_theme.dart';
 import 'package:est20coffee/screens/welcome_screen.dart';
 import 'package:est20coffee/screens/main_menu_screen.dart';
@@ -17,12 +19,16 @@ class Est20CoffeeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EST 20 COFFEE',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      initialRoute: '/',
-      routes: {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => CartProvider()),
+      ],
+      child: MaterialApp(
+        title: 'EST 20 COFFEE',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark,
+        initialRoute: '/',
+        routes: {
         '/': (context) => const WelcomeScreen(),
         '/menu': (context) => const MainMenuScreen(),
         '/cart': (context) => const OrderReviewScreen(),
@@ -31,6 +37,7 @@ class Est20CoffeeApp extends StatelessWidget {
         '/received': (context) => const OrderReceivedScreen(),
         '/status': (context) => const OrderStatusScreen(),
       },
+      ),
     );
   }
 }

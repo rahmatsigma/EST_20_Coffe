@@ -1,6 +1,6 @@
-// lib/screens/main_menu_screen.dart
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:est20coffee/providers/cart_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/product.dart';
@@ -25,13 +25,20 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
   Future<Map<String, List<Product>>> fetchProducts() async {
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      final response = await http.get(Uri.parse(apiUrl)).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Koneksi timeout (10 detik). Pastikan server menyala dan IP $apiUrl benar.');
+        },
+      );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         
         if (jsonResponse['status'] == 'success') {
           List<dynamic> data = jsonResponse['data'];
+          if (data.isEmpty) return {};
+          
           List<Product> allProducts = data.map((item) => Product.fromJson(item)).toList();
 
           // Logika Pengelompokan (Grouping)
@@ -54,7 +61,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         throw Exception('Server error: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Koneksi gagal. Error: $e');
+      if (e is Exception) rethrow;
+      throw Exception('Terjadi kesalahan: $e');
     }
   }
 
@@ -64,12 +72,21 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       appBar: AppBar(
         title: const Text('Menu EST 20 Coffee'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () {
-              Navigator.pushNamed(context, '/cart');
+          Consumer<CartProvider>(
+            builder: (context, cart, child) {
+              return Badge(
+                isLabelVisible: cart.itemCount > 0,
+                label: Text(cart.itemCount.toString()),
+                offset: const Offset(-8, 8),
+                child: IconButton(
+                  icon: const Icon(Icons.shopping_cart),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/cart');
+                  },
+                ),
+              );
             },
-          )
+          ),
         ],
       ),
       body: FutureBuilder<Map<String, List<Product>>>( // Tipe datanya diubah
@@ -78,7 +95,37 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text("${snapshot.error}"));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      "${snapshot.error}",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          futureGroupedProducts = fetchProducts();
+                        });
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text("Coba Lagi"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.brown,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
           } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
             
             final groupedProducts = snapshot.data!;
@@ -163,14 +210,24 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   onTap: () {
-                    Navigator.pop(context); // Tutup bottom sheet
-                    // Nanti logika masuk keranjang di sini
+                    Navigator.pop(context); 
+                    
+                    Provider.of<CartProvider>(context, listen: false).addItem(variant);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${variant.name} masuk keranjang!')),
+                      SnackBar(
+                        content: Text('${variant.name} masuk keranjang!'),
+                        duration: const Duration(seconds: 1),
+                        action: SnackBarAction(
+                          label: 'LIHAT',
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/cart');
+                          },
+                        ),
+                      ),
                     );
                   },
                 );
-              }).toList(),
+              }),
               const SizedBox(height: 16),
             ],
           ),

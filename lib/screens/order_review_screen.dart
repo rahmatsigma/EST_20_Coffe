@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import 'package:est20coffee/theme/app_theme.dart';
 import 'package:est20coffee/widgets/app_bars.dart';
+import '../providers/cart_provider.dart';
 
 class OrderReviewScreen extends StatefulWidget {
   const OrderReviewScreen({super.key});
@@ -12,29 +14,6 @@ class OrderReviewScreen extends StatefulWidget {
 }
 
 class _OrderReviewScreenState extends State<OrderReviewScreen> {
-  final List<_CartItem> _cartItems = [
-    _CartItem(
-      name: 'Iced Oat Latte',
-      variant: 'Large, Less Sugar, Oat Milk',
-      price: 42000,
-      quantity: 1,
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuB8XyG9183bF3dzPoTR12XrY1eMwZnELMY0SvYAi9wNI7Aew_K6VrEcxrRs87Pkhs64fmHHQiH4eIbN1AI4N8GSnfCElfUAYiUiXiUAa7yscitPx3JGul4SRnbeIkk8yHCaLVGdXUAC5_LlcfGdAMLOEv-5YvB27Bt_ZIEgc8kFcs0NrlyXcj35_YFIooM5kwodo9iKRqlxVnQEvpnN23K8nTlyG0ZkCmUHayy3gZWSV5fzjFGp5z3U37Bb3rJAeCfgvKrRLgpWetZk',
-    ),
-    _CartItem(
-      name: 'V60 Single Origin',
-      variant: 'Ethiopia Guji, Hot',
-      price: 38000,
-      quantity: 2,
-      imageUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuCaJJsUzs-ugB25JCsFtqEgAa7L2GmFlWnzcb9spFJ2w7c-_kP8R-5Cf-P3YjuOIQzMg9AaIL17rnwWAhQ_9EFIP1EKemKDxdA6QIB17SlDbVET7OtOG3WkZP1BDJYlproHksCU6x7J6j4Su8WNcXM_3Yew1O2Uz48EMkc4MQIeaGX0HNqz1bOIDR_q6BMK2_cRnTY0UTtfxcOC1zxYsGMfoEKBk1aDzvvSVCr_ahmXcs7GyHGqJTvo6G_QYQF-bR7bhiTc7pnFEbjb',
-    ),
-  ];
-
-  int get _subtotal =>
-      _cartItems.fold(0, (sum, item) => sum + item.price * item.quantity);
-  int get _tax => (_subtotal * 0.1).round();
-  int get _total => _subtotal + _tax;
 
   String _formatRupiah(int amount) {
     final str = amount.toString();
@@ -48,13 +27,19 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cart = Provider.of<CartProvider>(context);
+    final cartItems = cart.items.values.toList(); 
+    
+    final subtotal = cart.totalAmount.toInt();
+    final tax = (subtotal * 0.1).round();
+    final total = subtotal + tax;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBody: true,
-      appBar: AppTopBar(showMenu: true, showBag: false),
+      appBar: const AppTopBar(showMenu: true, showBag: false),
       body: Stack(
         children: [
-          // Background leaf texture
           Positioned.fill(
             child: Opacity(
               opacity: 0.04,
@@ -94,7 +79,6 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                 ),
               ),
 
-              // Table detection badge
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -105,7 +89,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 8,
                         ),
                       ],
@@ -115,7 +99,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.secondaryContainer.withOpacity(0.3),
+                            color: AppColors.secondaryContainer.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -155,91 +139,102 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                 ),
               ),
 
-              // Cart Items
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                    child: _CartItemCard(
-                      item: _cartItems[index],
-                      onIncrement: () {
-                        setState(() => _cartItems[index].quantity++);
-                      },
-                      onDecrement: () {
-                        setState(() {
-                          if (_cartItems[index].quantity > 1) {
-                            _cartItems[index].quantity--;
-                          } else {
-                            _cartItems.removeAt(index);
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                  childCount: _cartItems.length,
-                ),
-              ),
-
-              // Price Summary
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 200),
-                  child: Column(
-                    children: [
-                      _PriceRow(
-                        label: 'Subtotal',
-                        value: _formatRupiah(_subtotal),
-                      ),
-                      const SizedBox(height: 10),
-                      _PriceRow(
-                        label: 'Tax (10%)',
-                        value: _formatRupiah(_tax),
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        height: 1,
-                        color: AppColors.outlineVariant.withOpacity(0.2),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              if (cartItems.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 80),
+                    child: Center(
+                      child: Column(
                         children: [
+                          const Icon(Icons.shopping_bag_outlined, size: 80, color: AppColors.outlineVariant),
+                          const SizedBox(height: 16),
                           Text(
-                            'Total Amount',
-                            style: GoogleFonts.manrope(
-                              color: AppColors.onSurface,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            _formatRupiah(_total),
-                            style: GoogleFonts.manrope(
-                              color: AppColors.secondary,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
+                            "Keranjang masih kosong",
+                            style: GoogleFonts.manrope(fontSize: 18, color: AppColors.onSurfaceVariant),
+                          )
                         ],
                       ),
-                    ],
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                      child: _CartItemCard(
+                        item: cartItems[index], 
+                        onIncrement: () {
+                          cart.addItem(cartItems[index].product);
+                        },
+                        onDecrement: () {
+                          cart.reduceItem(cartItems[index].product);
+                        },
+                      ),
+                    ),
+                    childCount: cartItems.length,
                   ),
                 ),
-              ),
+
+              if (cartItems.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 200),
+                    child: Column(
+                      children: [
+                        _PriceRow(
+                          label: 'Subtotal',
+                          value: _formatRupiah(subtotal),
+                        ),
+                        const SizedBox(height: 10),
+                        _PriceRow(
+                          label: 'Tax (10%)',
+                          value: _formatRupiah(tax),
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          height: 1,
+                          color: AppColors.outlineVariant.withValues(alpha: 0.2),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Amount',
+                              style: GoogleFonts.manrope(
+                                color: AppColors.onSurface,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              _formatRupiah(total),
+                              style: GoogleFonts.manrope(
+                                color: AppColors.secondary,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
       ),
 
-      // Bottom Action Buttons
-      bottomSheet: Container(
+      bottomSheet: cartItems.isEmpty ? null : Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainer.withOpacity(0.92),
+          color: AppColors.surfaceContainer.withValues(alpha: 0.92),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               blurRadius: 32,
               offset: const Offset(0, -8),
             ),
@@ -254,7 +249,6 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // QRIS Button
             GestureDetector(
               onTap: () => Navigator.pushNamed(context, '/qris'),
               child: Container(
@@ -265,7 +259,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -290,8 +284,6 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
               ),
             ),
             const SizedBox(height: 10),
-
-            // Cash Button
             GestureDetector(
               onTap: () => Navigator.pushNamed(context, '/registered'),
               child: Container(
@@ -299,7 +291,7 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: AppColors.outlineVariant.withOpacity(0.3),
+                    color: AppColors.outlineVariant.withValues(alpha: 0.3),
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -321,26 +313,6 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
                 ),
               ),
             ),
-
-            // Bottom Nav
-            const SizedBox(height: 12),
-            AppBottomNav(
-              currentIndex: 2,
-              onTap: (index) {
-                switch (index) {
-                  case 0:
-                    Navigator.pushReplacementNamed(context, '/menu');
-                    break;
-                  case 1:
-                    Navigator.pushNamed(context, '/status');
-                    break;
-                  case 2:
-                    break;
-                  case 3:
-                    break;
-                }
-              },
-            ),
           ],
         ),
       ),
@@ -348,24 +320,8 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
   }
 }
 
-class _CartItem {
-  final String name;
-  final String variant;
-  final int price;
-  int quantity;
-  final String imageUrl;
-
-  _CartItem({
-    required this.name,
-    required this.variant,
-    required this.price,
-    required this.quantity,
-    required this.imageUrl,
-  });
-}
-
 class _CartItemCard extends StatelessWidget {
-  final _CartItem item;
+  final CartItem item; 
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
 
@@ -377,30 +333,29 @@ class _CartItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = item.product.imageUrl ?? '';
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: SizedBox(
             width: 88,
             height: 88,
             child: CachedNetworkImage(
-              imageUrl: item.imageUrl,
+              imageUrl: imageUrl, 
               fit: BoxFit.cover,
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withValues(alpha: 0.85),
               colorBlendMode: BlendMode.modulate,
               errorWidget: (_, __, ___) => Container(
                 color: AppColors.surfaceContainer,
-                child: const Icon(Icons.coffee, color: AppColors.primary),
+                child: const Icon(Icons.coffee, color: AppColors.primary, size: 36),
               ),
             ),
           ),
         ),
         const SizedBox(width: 16),
-
-        // Info
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,17 +364,20 @@ class _CartItemCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      item.name,
+                      item.product.name,
                       style: GoogleFonts.manrope(
                         color: AppColors.onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.3,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
-                    'IDR ${(item.price ~/ 1000)}k',
+                    'IDR ${(item.product.price ~/ 1000)}k',
                     style: GoogleFonts.manrope(
                       color: AppColors.primary,
                       fontSize: 14,
@@ -430,15 +388,13 @@ class _CartItemCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                item.variant,
+                item.product.category ?? 'Coffee',
                 style: GoogleFonts.manrope(
                   color: AppColors.onSurfaceVariant,
                   fontSize: 12,
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Quantity controls
               Row(
                 children: [
                   _QtyBtn(icon: Icons.remove, onTap: onDecrement),

@@ -13,7 +13,7 @@ class MainMenuScreen extends StatefulWidget {
 }
 
 class _MainMenuScreenState extends State<MainMenuScreen> {
-  final String apiUrl = "http://192.168.0.223/est20_api/api/get_products.php";
+  final String apiUrl = "http://192.168.0.222/est20_api/api/get_products.php";
   
   late Future<Map<String, List<Product>>> futureGroupedProducts;
 

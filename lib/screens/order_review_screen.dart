@@ -14,6 +14,7 @@ class OrderReviewScreen extends StatefulWidget {
 }
 
 class _OrderReviewScreenState extends State<OrderReviewScreen> {
+  bool _isLoading = false;
 
   String _formatRupiah(int amount) {
     final str = amount.toString();
@@ -250,12 +251,29 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/qris'),
+              onTap: _isLoading ? null : () async {
+                setState(() => _isLoading = true);
+                
+                // Panggil fungsi submit ke API dengan metode QRIS
+                bool success = await cart.submitOrder('QRIS');
+                
+                setState(() => _isLoading = false);
+
+                if (success && context.mounted) {
+                  // Jika berhasil masuk DB, arahkan ke layar QRIS
+                  Navigator.pushReplacementNamed(context, '/qris');
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Gagal membuat pesanan. Coba lagi.')),
+                  );
+                }
+              },
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  // Ubah warna jadi abu-abu jika sedang loading
+                  color: _isLoading ? Colors.grey : AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
@@ -285,7 +303,23 @@ class _OrderReviewScreenState extends State<OrderReviewScreen> {
             ),
             const SizedBox(height: 10),
             GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/registered'),
+              onTap: _isLoading ? null : () async {
+                setState(() => _isLoading = true);
+                
+                // Panggil fungsi submit ke API dengan metode CASH
+                bool success = await cart.submitOrder('Cash');
+                
+                setState(() => _isLoading = false);
+
+                if (success && context.mounted) {
+                  // Jika berhasil masuk DB, arahkan ke layar Sukses / Registered
+                  Navigator.pushReplacementNamed(context, '/registered');
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Gagal membuat pesanan. Coba lagi.')),
+                  );
+                }
+              },
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 16),
